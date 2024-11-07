@@ -1,19 +1,43 @@
 const colourPalette = ['#E54379', '#CB010B', '#782221', 'purple'];
 const colorKeys = ["flower", "leaves", "endLeaves", "endLeavesStroke"];
+const backgroundColor = (20, 24, 82);
 let circles = [];
 let dots = [];
-let centerSphereSize,endSphereSize,endSphereStroke;
+let circleRadius,centerSphereSize,endSphereSize,endSphereStroke;
+let song;
+let fft;
+let numBins = 128;
+let smoothing = 0.8;
+let button;
+let colorVal;
+
+function preload(params) {
+  song = loadSound('/assets/Dreamcatcher_by_LogicMoon.wav');
+}
 
 function setup() { 
   createCanvas(windowWidth, windowHeight);
-  initializeElements();
+  let minDimension = min(width, height); 
+  circleRadius = minDimension / 7;
+
+  initializeFlowers();
+  initializeDots();
+
+  fft = new p5.FFT(smoothing, numBins);
+  song.connect(fft);
+  
+  button = createButton("Play/Pause");
+  button.position((width - button.width) / 2, height - button.height - 2);
+
+  button.mousePressed(play_pause);
+
 }
 
-function initializeElements() {
+function initializeFlowers() {
   circles = []; // Clear the existing circle data
-  const gridSize = windowWidth / 5; 
-  const rows = ceil(windowHeight / gridSize);
-  const cols = ceil(windowWidth / gridSize);
+  const gridSize = width / 5; 
+  const rows = ceil(width / gridSize);
+  const cols = ceil(height / gridSize);
 
   for (let row = 0; row < rows; row++) {
     for (let col = 0; col < cols; col++) {
@@ -45,19 +69,28 @@ function initializeElements() {
   }
 
   angleMode(DEGREES);
-  centerSphereSize = random(10, 30); // size of the cirle in the center of the flower
-  endSphereSize = centerSphereSize/2; // size of the circle in the end of the leaves
-  endSphereStroke = endSphereSize/3; // size of the circle stroke in the end of the leaves
-
-  // Initialize background dots
-  initializeDots(int((width*height)/800));
 }
 
 // Main drawing function
 function draw() {
-  background(251, 176, 59); // Set background color
+  if(fft === undefined) {return}
+  let amplitude = fft.getEnergy(20, 20000);
+  let centroidFreq = fft.getCentroid();
+  colorVal = map(centroidFreq, 0, 22050, 0, 1);
+  let spectrum = fft.analyze();
+  centerSphereSize = map(amplitude, 0, 255, 0, circleRadius);
+  endSphereSize = centerSphereSize/2; // size of the circle in the end of the leaves
+  endSphereStroke = endSphereSize/3; // size of the circle stroke in the end of the leaves
+
   
+  background(backgroundColor*colorVal); // Set background color
+
+  
+  let raio = spectrum.length / circles.length;
+
+  console.log(raio);
   for (let i = 0; i < circles.length; i++) {
+    leafLength = map(spectrum[i], 0, 255, circles[i].r*0.8, circles[i].r*1.5);
     /* 
     INPUT PARAM:
     1, x: x position of the flower
@@ -66,7 +99,7 @@ function draw() {
     4, leaflength: number of the flower leaves
     5, colors: color pallet for the flower
      */ 
-    drawFlower(circles[i].x, circles[i].y, circles[i].leafCount, circles[i].r, circles[i].colors); 
+    drawFlower(circles[i].x, circles[i].y, circles[i].leafCount, leafLength, circles[i].colors); 
   }
   drawDots();
 }
@@ -137,7 +170,8 @@ function createRandomDotsAttributes() {
 //////
 
 // Initialize background dots
-function initializeDots(numDots) {
+function initializeDots() {
+  let numDots = int((width*height)/800);
   dots = [];
   for (let i = 0; i < numDots; i++) {
     dots.push(createRandomDotsAttributes());
@@ -163,10 +197,22 @@ function drawDots() {
     }
   }
 }
+function play_pause() {
+  if (song.isPlaying()) {
+    song.stop();
+  } else {
+    // We can use song.play() here if we want the song to play once
+    // In this case, we want the song to loop, so we call song.loop()
+    song.loop();
+  }
+}
 
 function windowResized() {
   resizeCanvas(windowWidth, windowHeight);
-  initializeElements(); // Reinitialize elements for new window size
+  initializeFlowers(); // Reinitialize elements for new window size
+  initializeDots();
 
-  endSphereStroke = min(windowWidth, windowHeight) / 250; 
+  let minDimension = min(width, height); 
+  circleRadius = minDimension / 200;
+  button.position((width - button.width) / 2, height - button.height - 2);
 }
