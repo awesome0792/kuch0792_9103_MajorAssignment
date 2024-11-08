@@ -1,21 +1,27 @@
-const colourPalette = ['#E54379', '#CB010B', '#782221', 'purple'];
+// const colourPalette = [(229,67,121), (203,1,11), (120,34,33), (128,0,128)];
+const colourPalette = [
+  [229, 67, 121],  // RGB for one color
+  [203, 1, 11],    // RGB for another color
+  [120, 34, 33],   // RGB for another color
+  [128, 0, 128]    // RGB for another color
+];
 const colorKeys = ["flower", "leaves", "endLeaves", "endLeavesStroke"];
 let backgroundColor = (20, 24, 82);
-let circles = [];
-let dots = [];
 let circleRadius,centerSphereSize,endSphereSize,endSphereStroke;
-let song;
-let fft;
+let song,fft;
 let numBins = 128;
 let smoothing = 0.9;
 let button;
 let colorVal;
 let fireworks = [];
+let circles = [];
+let shapes = [];
 let gravity;
 let playing = false;
 
 function preload(params) {
-  song = loadSound('/assets/Dreamcatcher_by_LogicMoon.wav');
+  // song = loadSound('/assets/Dreamcatcher_by_LogicMoon.wav');
+  song = loadSound('/assets/Minimal_Loop_by_GIS_Sweden.wav');
 }
 
 function setup() { 
@@ -49,44 +55,24 @@ function draw() {
   let centroidFreq = fft.getCentroid();
   let spectrum = fft.analyze();
 
-  colorVal = map(centroidFreq, 0, 22050, 1, -1);
+  colorVal = map(centroidFreq, 0, 22050, 0, 360);
   centerSphereSize = map(amplitude, 0, 255, 0, circleRadius);
   endSphereSize = centerSphereSize/3; // size of the circle in the end of the leaves
   endSphereStroke = endSphereSize/5; // size of the circle stroke in the end of the leaves
 
   
-  if(playing){
-    background(backgroundColor*(colorVal),25); // Set background color
-  }else{
-    background(0);
-  }
+  background(0,60)
 
-  
-  let ratio = spectrum.length / circles.length;
-
-  for (let i = 0; i < circles.length; i++) {
-    leafLength = map(spectrum[i*ratio], 0, 255, circles[i].r*0.5, circles[i].r*2);
-    /* 
-    INPUT PARAM:
-    1, x: x position of the flower
-    2, y: y position of the flower
-    3, leafCount: number of the flower leaves
-    4, leaflength: number of the flower leaves
-    5, colors: color pallet for the flower
-     */ 
-    drawFlowers(circles[i].x, circles[i].y, circles[i].leafCount, leafLength, circles[i].colors); 
-  }
-
+  drawFlowers(); 
   drawDots();
 
 
   let flag = false;
   for (let i = 20; i < 40; i++) {
-    if(spectrum[i]>130){
+    if(spectrum[i]>100){
       flag = true;
     }
   }
-  // 24
   if(flag){
     if(random()<0.1){
       fireworks.push(new Firework(random(-5,map(spectrum[25], 0, 255, -5, -40))))
@@ -98,6 +84,10 @@ function draw() {
     if(fireworks[i].done()){
       fireworks.splice(i,1);
     }
+  }
+  noStroke(); // Remove outline
+  for (let i = 0; i < spectrum.length; i++) {
+    shapes[i].display(spectrum[i] / 255);
   }
 }
 
@@ -112,13 +102,13 @@ function initializeFlowers() {
     for (let col = 0; col < cols; col++) {
       let x = col * gridSize + gridSize/2 + random(-gridSize*0.2,gridSize*0.2);
       let y = row * gridSize + gridSize/2 + random(-gridSize*0.2,gridSize*0.2);
-      let r = random(50, 100);
+      let leafLength = random(50, 200);
       let leafCount = random(8, 15);
 
       let colors = Object.fromEntries(
         colorKeys.map(key => [key, colourPalette[floor(random(colourPalette.length))]])
       );
-      circles.push(new Flower(x, y, r, leafCount, colors));
+      circles.push(new Flower(x, y, leafLength, leafCount, colors));
     }
   }
   angleMode(DEGREES);
@@ -139,37 +129,36 @@ function createRandomDotsAttributes() {
     y: random(height), // Random Y-coordinate
     size: random(5, 10), // Set dot size between 5 and 15
     chosenColor: randomColor(), // Randomly select color from color pallet
-    noiseOffset: random(300) // Random noise offset for unique movement
+     // Random noise offset for unique movement
   };
 }
 
 // Initialize background dots
 function initializeDots() {
-  let numDots = int((width*height)/1000);
-  dots = [];
-  for (let i = 0; i < numDots; i++) {
-    dots.push(createRandomDotsAttributes());
+  shapes = [];
+  for (let i = 0; i < numBins; i++) {
+    let shapeType = random() > 0.5 ? "circle" : "square";
+    shapes.push(new RandomShapes(shapeType));
   }
 }
 
 // Draw and Move dots
 function drawDots() {
-  noStroke(); // Remove outline
-  for (let dot of dots) {
-    fill(dot.chosenColor);
       
-    // Update position using Perlin noise and constrain within boundaries
-    dot.x += map(noise(dot.noiseOffset), 0, 1, -2, 2);
-    dot.y += map(noise(dot.noiseOffset + 100), 0, 1, -2, 2);
+  //   // Update position using Perlin noise and constrain within boundaries
+  //   dots[i].x += map(noise(dots[i].noiseOffset), 0, 1, -2, 2);
+  //   dots[i].y += map(noise(dots[i].noiseOffset + 100), 0, 1, -2, 2);
 
-    ellipse(dot.x, dot.y, dot.size * 0.5, dot.size * 0.5); // Shrink dot size and draw
-    dot.noiseOffset += 0.01; // Increase noise offset for smooth movement
+  //   ellipse(dots[i].x, dots[i].y, dots[i].size * 0.5, dots[i].size * 0.5); // Shrink dot size and draw
+  //   dots[i].noiseOffset += 0.01; // Increase noise offset for smooth movement
   
-    // Keep dots within canvas boundaries
-    if (dot.x < 0 || width < dot.x || dot.y < 0 || height < dot.y){
-      dot = createRandomDotsAttributes();
-    }
-  }
+  //   // Keep dots within canvas boundaries
+  //   if (dots[i].x < 0 || width < dots[i].x || dots[i].y < 0 || height < dots[i].y){
+  //     dots.splice(i,1);
+  //     dots.push(createRandomDotsAttributes());
+  //   }
+    
+  // }
 }
 function play_pause() {
   if (song.isPlaying()) {
