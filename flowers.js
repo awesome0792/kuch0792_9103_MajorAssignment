@@ -1,10 +1,11 @@
 class Flower {
-    constructor(x, y, leafLength, leafCount, colors) {
+    constructor(x, y, leafLength, leafCount, colors,scale) {
       this.x = x;
       this.y = y;
       this.leafLength = leafLength;
       this.leafCount = leafCount;
       this.colors = colors;
+      this.scale = scale;
     }
   
     draw() {
@@ -21,7 +22,7 @@ class Flower {
       // Draw central sphere
       fill(color(this.colors.flower));
       noStroke();
-      ellipse(0, 0, centerSphereSize, centerSphereSize); // Draw central sphere
+      circle(0, 0, centerSphereSize*this.scale); // Draw central sphere
   
       pop();
     }

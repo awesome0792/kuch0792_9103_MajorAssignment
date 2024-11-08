@@ -6,11 +6,13 @@ class RandomShapes{
       this.size = random(0.03,0.08);
       this.color = color(colourPalette[floor(random(colourPalette.length))]);
       this.scale = 1;
-      this.noiseOffset = random(300);
+      this.angle = 0;
     }
   
-    display(scale){
+    display(scale,volume){
+      this.angle += frameCount/map(volume,0,255,10,50); // Rotation angle per leaf
       this.scale = scale;
+      this.color.setAlpha(90);
       fill(this.color);
       noStroke();
       let minDimension = min(width,height);
@@ -19,20 +21,25 @@ class RandomShapes{
   
       let x = this.x * width;
       let y = this.y * height;
+
+      push();
+      rectMode(CENTER);
+      translate(x,y);
+      rotate(this.angle);
   
       switch(this.type){
         case "circle":
-          ellipse(x,y,size,size);
+          ellipse(0,0,size,size);
           break;
         case "square":
-          rect(x,y,size,size);
+          rect(0,0,size,size);
           break;
       }
+      pop();
     }
   }
 class Particle {
-  constructor(x,y,vel,release,type) {
-    this.type = type;
+  constructor(x,y,vel,release) {
     this.pos = createVector(x,y);
     this.release = release
     this.lifespan = 255;
@@ -40,8 +47,9 @@ class Particle {
     this.color = color(colourPalette[floor(random(colourPalette.length))]);
 
     if(this.release){
+      let max = random(10,20);
       this.vel = p5.Vector.random2D();
-      this.vel.mult(random(2,10));
+      this.vel.mult(random(2,max));
     }else{
       this.vel = createVector(0,vel);
     }
@@ -64,13 +72,9 @@ class Particle {
     fill(this.color);
     noStroke();
     if(this.release){
-      if(this.type == "circle"){
-        circle(this.pos.x,this.pos.y,10);
-      }else{
-        rect(this.pos.x,this.pos.y,10,10);
-      }
+      circle(this.pos.x,this.pos.y,3);
     }else{
-      circle(this.pos.x,this.pos.y,4);
+      circle(this.pos.x,this.pos.y,5);
     }
   }
   done(){
@@ -109,8 +113,7 @@ class Firework {
 
   explode(){
     for (let i = 0; i < 100; i++) {
-      let shapeType = random() > 0.5 ? "circle" : "square";
-      this.particles.push(new Particle(this.firework.pos.x,this.firework.pos.y,this.firework.vel.y,true,shapeType));
+      this.particles.push(new Particle(this.firework.pos.x,this.firework.pos.y,this.firework.vel.y,true));
     }
   }
   show(){
